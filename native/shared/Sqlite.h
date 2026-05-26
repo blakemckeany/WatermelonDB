@@ -8,7 +8,10 @@ namespace watermelondb {
 // Lightweight wrapper for handling sqlite3 lifetime
 class SqliteDb {
 public:
-    SqliteDb(std::string path);
+    // `passphrase` must be a non-empty string; the database is opened with
+    // SQLCipher's sqlite3_key and probed before returning, so a wrong key
+    // surfaces as a thrown std::runtime_error rather than silent corruption.
+    SqliteDb(std::string path, const std::string &passphrase);
     ~SqliteDb();
     void destroy();
 

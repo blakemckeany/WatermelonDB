@@ -1,0 +1,19 @@
+This directory holds the SQLCipher Community Edition amalgamation
+(`sqlite3.c` and `sqlite3.h`) used as the storage engine for this fork of
+WatermelonDB. Encryption-at-rest is mandatory; the SQLite library shipped in
+upstream WatermelonDB at `@nozbe/sqlite` does not include the SQLCipher
+codec and is intentionally not used here.
+
+SQLCipher is © 2008-2024 Zetetic LLC. SQLCipher Community Edition is
+licensed under a BSD-style license, available at:
+  https://github.com/sqlcipher/sqlcipher/blob/master/LICENSE
+
+The amalgamation sources are NOT committed to this repository. They are
+generated on demand by `scripts/vendor-sqlcipher.sh` (which runs
+automatically via the `postinstall` npm hook) or can be downloaded from the
+official SQLCipher release tarballs. The pinned version is recorded in
+`scripts/vendor-sqlcipher.sh`.
+
+Redistribution: when you publish a package built against this directory you
+inherit SQLCipher's notice requirement. Reproduce the SQLCipher license in
+your application's third-party-licenses page or about screen.

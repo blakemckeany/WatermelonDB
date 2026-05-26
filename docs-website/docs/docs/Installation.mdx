@@ -222,6 +222,73 @@ backtrace:
 
 </details>
 
+## Encryption at rest
+
+This fork enables full-database encryption by default using
+[SQLCipher Community Edition](https://www.zetetic.net/sqlcipher/) (AES-256
+with HMAC-SHA512 page authentication and PBKDF2 key derivation).
+`SQLiteAdapter` **requires** a non-empty `passphrase: string` — instantiating
+it without one will throw at construction time.
+
+### Quick start
+
+```js
+import { SQLiteAdapter } from '@nozbe/watermelondb/adapters/sqlite'
+import * as Keychain from 'react-native-keychain'
+
+async function loadOrCreatePassphrase() {
+  const existing = await Keychain.getGenericPassword({ service: 'watermelon-db-key' })
+  if (existing) return existing.password
+  // Generate once on first launch and persist in the OS secure enclave.
+  const fresh = await Keychain.generateRandomBytes(32) // returns hex
+  await Keychain.setGenericPassword('watermelon', fresh, { service: 'watermelon-db-key' })
+  return fresh
+}
+
+export async function makeAdapter(schema) {
+  const passphrase = await loadOrCreatePassphrase()
+  return new SQLiteAdapter({
+    schema,
+    passphrase,
+    jsi: true, // encryption only applies on the JSI path
+  })
+}
+```
+
+### Required setup
+
+- **iOS**: nothing extra — the `SQLCipher` CocoaPod is pulled in
+  automatically by WatermelonDB's podspec. Just run `pod install` after
+  installing the package.
+- **Android**: `minSdkVersion` must be **at least 21** (Android 5.0). The
+  bundled OpenSSL prefab does not support older SDKs.
+- **`yarn install`** must run with `tclsh` available on the build machine.
+  A `postinstall` hook fetches and builds the SQLCipher amalgamation; the
+  script will print a clear error if `tclsh` is missing.
+  Override the pinned SQLCipher version with `SQLCIPHER_VERSION=…`.
+
+### What encryption protects
+
+- The on-disk `*.db` file plus its WAL and SHM sidecars.
+- Database backups (iCloud, Android backup) — the file is opaque ciphertext.
+
+### What it does NOT protect
+
+- Loki/IndexedDB on web (out of scope — use OS storage policies instead).
+- Anything you log, screenshot, or copy to clipboard from your app.
+- The legacy non-JSI bridge. If you instantiate without `{ jsi: true }`,
+  the legacy bridge opens the database **unencrypted** and a warning is
+  logged. Always pass `jsi: true` if encryption is required.
+
+### Important caveats
+
+- You **cannot** change the passphrase on an existing database via this
+  adapter. SQLCipher's `PRAGMA rekey` is not exposed yet — rewrite the
+  database with the new key instead.
+- You **cannot** open an upstream-WatermelonDB plaintext database with
+  this fork — file headers differ. Migrate via your sync layer or export
+  to JSON, then re-import.
+
 ## Web setup
 
 If you haven't already, install Babel plugins for decorators, static class properties, and async/await to get the most out of Watermelon. This assumes you use Babel 7 and already support ES6 syntax.

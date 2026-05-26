@@ -1,13 +1,59 @@
-# Reporting Security Issues
+# Security
 
-If you believe you've found a security vulnerability in WatermelonDB, let us know right away.
+## Encryption at rest
 
-More details on how to responsibly disclose issues: https://nozbe.com/bug-bounty/
+This fork of WatermelonDB enables full-database encryption by default via
+[SQLCipher Community Edition](https://www.zetetic.net/sqlcipher/). The
+on-disk database is encrypted with AES-256-CBC, with HMAC-SHA512 page
+authentication and PBKDF2 key derivation (256,000 rounds, per-database
+salt) per SQLCipher 4's defaults.
 
-## How WatermelonDB reports security vulnerabilities
+### What we encrypt
 
-If vulnerabilities are found, we'll post security advisories via GitHub once a confirmed patch is available.
+- The SQLite database file containing your records (`*.db`).
+- The WAL and SHM sidecar files written during writes.
 
-We may choose to send a heads-up to a select list of higher-profile projects/organizations to alert them about a vulnerability before the public. Inclusion into this list is entirely at our own discretion. If we do send a heads-up before a public patch, we'll include the least amount of detail possible - only enough to work around an issue.
+### What we do NOT encrypt
 
-If we determine that it's in the best interest of all WatermelonDB users, we may choose to advise users to update to a new version of WatermelonDB or apply a workaround without revealing all details about the vulnerability. This may happen if we believe there's a very serious issue that's easy to patch but difficult to discover. If we do so, we will post a detailed explanation after a few weeks.
+- The schema cache file (if any) and any other adapter-internal metadata
+  outside the SQLite file.
+- The Loki/IndexedDB browser adapter — that path is not within scope.
+- The legacy `NativeModules` bridge — if you instantiate `SQLiteAdapter`
+  without `jsi: true`, the database is opened by the bridge unencrypted
+  and a warning is logged at startup.
+
+### Your responsibilities
+
+You are responsible for **supplying** and **storing** the passphrase. The
+library does not generate, derive, or persist a key for you — by design.
+
+- Store the passphrase in the platform secure enclave:
+  - iOS: [Keychain Services](https://developer.apple.com/documentation/security/keychain_services)
+    (e.g. `react-native-keychain`).
+  - Android: [Android Keystore](https://developer.android.com/training/articles/keystore)
+    via `EncryptedSharedPreferences` (e.g. `react-native-keychain`).
+  - Expo: `expo-secure-store`.
+- Treat the passphrase as PII: never log it, never send it over the network,
+  never commit it to version control.
+- Decide an appropriate key-rotation policy. SQLCipher supports
+  `PRAGMA rekey = 'new-key'` for in-place rekeying, but this fork does not
+  expose that API yet — you would need to rewrite the database.
+
+### Threat model
+
+| Threat                                         | Mitigated? |
+| ---------------------------------------------- | ---------- |
+| Physical access, device powered down, FDE off  | ✅          |
+| Stolen device backup (iCloud / Google Backup)  | ✅          |
+| Rooted/jailbroken device, attacker has shell   | ⚠️ Only if the passphrase is not in memory at the moment of compromise. The passphrase lives in JS heap during initialization. |
+| Compromised RN bundle / supply-chain attack    | ❌ The bundle has access to the running passphrase. Use code signing and integrity checks. |
+| Forensic memory dump while DB is open          | ❌ SQLCipher keeps the key in process memory while the DB is open. |
+
+## Reporting Security Issues
+
+If you believe you've found a security vulnerability in this fork of
+WatermelonDB, please open a private security advisory on the GitHub
+repository.
+
+Upstream WatermelonDB vulnerabilities can be reported at
+<https://nozbe.com/bug-bounty/>.

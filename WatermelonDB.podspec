@@ -25,6 +25,13 @@ Pod::Spec.new do |s|
     # FIXME: This is a workaround for broken build in use_frameworks mode
     # I don't think this is a correct fix, but… seems to work?
     # 'OTHER_SWIFT_FLAGS' => '-Xcc -Wno-error=non-modular-include-in-framework-module'
+    #
+    # Encryption-at-rest is mandatory in this fork. SQLITE_HAS_CODEC switches the
+    # vendored C++ Sqlite.cpp onto the sqlite3_key path; the SQLCipher pod below
+    # supplies the codec-enabled sqlite3.h that everything else (FMDB, the JSI
+    # shared code) resolves to.
+    "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) SQLITE_HAS_CODEC=1",
+    "OTHER_CFLAGS"                 => "$(inherited) -DSQLITE_HAS_CODEC=1 -DSQLITE_TEMP_STORE=2",
   }
   s.requires_arc = true
   # simdjson is annoyingly slow without compiler optimization, disable for debugging
@@ -32,7 +39,10 @@ Pod::Spec.new do |s|
 
   s.dependency "React"
 
-  s.libraries = 'sqlite3'
+  # SQLCipher Community Edition. Replaces the system `sqlite3` linkage; #include
+  # <sqlite3.h> resolves to SQLCipher's header. Apps that pull in WatermelonDB
+  # will get SQLCipher transitively — no extra Podfile step required.
+  s.dependency "SQLCipher", "~> 4.6"
 
   # NOTE: This dependency doesn't seem to be needed anymore (tested on RN 0.66, 0.71), file an issue
   # if this causes issues for you

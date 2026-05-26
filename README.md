@@ -38,6 +38,7 @@
 | ✨ | **Reactive.** (Optional) [RxJS](https://github.com/ReactiveX/rxjs) API |
 | 🔗 | **Relational.** Built on rock-solid [SQLite](https://www.sqlite.org) foundation |
 | ⚠️ | **Static typing** with [Flow](https://flow.org) or [TypeScript](https://typescriptlang.org) |
+| 🔐 | **Encrypted at rest** by default via [SQLCipher](https://www.zetetic.net/sqlcipher/) (this fork) — see [Encryption at rest](https://watermelondb.dev/docs/Installation#encryption-at-rest) |
 
 ## Why Watermelon?
 

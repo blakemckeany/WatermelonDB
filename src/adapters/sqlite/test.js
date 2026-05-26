@@ -11,6 +11,23 @@ function removeIfExists(file, dbName) {
   }
 }
 
+describe('SQLiteAdapter passphrase invariant', () => {
+  it('throws when passphrase is missing', () => {
+    expect(() => new SqliteAdapter({ schema: testSchema })).toThrow(/passphrase/i)
+  })
+
+  it('throws when passphrase is an empty string', () => {
+    expect(() => new SqliteAdapter({ schema: testSchema, passphrase: '' })).toThrow(/passphrase/i)
+  })
+
+  it('throws when passphrase is not a string', () => {
+    expect(
+      // $FlowFixMe — intentional bad input
+      () => new SqliteAdapter({ schema: testSchema, passphrase: 12345 }),
+    ).toThrow(/passphrase/i)
+  })
+})
+
 describe.each([
   // ['SQLiteAdapterNode', 'Asynchronous', 'File'],
   ['SQLiteAdapterNode', 'Asynchronous', 'Memory'],
@@ -39,10 +56,12 @@ describe.each([
       const extraAdapterOptions = {
         dbName,
         adapterSubclass,
+        passphrase: 'watermelon-jest-test-passphrase',
       }
       const adapter = new SqliteAdapter({
         dbName,
         schema: testSchema,
+        passphrase: 'watermelon-jest-test-passphrase',
       })
 
       try {

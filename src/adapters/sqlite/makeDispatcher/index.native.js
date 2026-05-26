@@ -22,7 +22,7 @@ class SqliteNativeModulesDispatcher implements SqliteDispatcher {
   constructor(
     tag: ConnectionTag,
     bridge: any,
-    { experimentalUnsafeNativeReuse }: SqliteDispatcherOptions,
+    { passphrase, experimentalUnsafeNativeReuse }: SqliteDispatcherOptions,
   ): void {
     this._tag = tag
     this._bridge = bridge
@@ -36,6 +36,11 @@ class SqliteNativeModulesDispatcher implements SqliteDispatcher {
       invariant(
         Platform.OS !== 'windows',
         'Windows is only supported via JSI. Pass { jsi: true } to SQLiteAdapter constructor.',
+      )
+    }
+    if (passphrase) {
+      logger.warn(
+        '[SQLite] A passphrase was supplied to SQLiteAdapter, but encryption requires the JSI dispatcher. The legacy NativeModules bridge will open the database UNENCRYPTED. Pass `jsi: true` to enable encryption-at-rest.',
       )
     }
   }
@@ -61,8 +66,11 @@ class SqliteJsiDispatcher implements SqliteDispatcher {
   _db: any
   _unsafeErrorListener: (Error) => void // debug hook for NT use
 
-  constructor(dbName: string, { usesExclusiveLocking }: SqliteDispatcherOptions): void {
-    this._db = global.nativeWatermelonCreateAdapter(dbName, usesExclusiveLocking)
+  constructor(
+    dbName: string,
+    { passphrase, usesExclusiveLocking }: SqliteDispatcherOptions,
+  ): void {
+    this._db = global.nativeWatermelonCreateAdapter(dbName, passphrase, usesExclusiveLocking)
     this._unsafeErrorListener = () => {}
   }
 

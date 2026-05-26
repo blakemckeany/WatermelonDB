@@ -17,7 +17,7 @@ std::string resolveDatabasePath(std::string path) {
     }
 }
 
-SqliteDb::SqliteDb(std::string path) {
+SqliteDb::SqliteDb(std::string path, const std::string &passphrase) {
     consoleLog("Will open database...");
     platform::initializeSqlite();
     #ifndef ANDROID
@@ -38,7 +38,39 @@ SqliteDb::SqliteDb(std::string path) {
     }
     assert(sqlite != nullptr);
 
+#ifdef SQLITE_HAS_CODEC
+    // Encryption-at-rest is mandatory in this build. An empty passphrase is a
+    // programming error in the JS layer (the SQLiteAdapter constructor already
+    // invariants on this), but we double-check here so a misconfigured native
+    // test harness can't silently produce an unencrypted file.
+    if (passphrase.empty()) {
+        sqlite3_close(sqlite);
+        sqlite = nullptr;
+        throw std::runtime_error(
+            "WatermelonDB: passphrase is required (encryption-at-rest is mandatory in this build).");
+    }
+    int keyResult = sqlite3_key(sqlite, passphrase.data(), static_cast<int>(passphrase.size()));
+    if (keyResult != SQLITE_OK) {
+        std::string err = sqlite3_errmsg(sqlite);
+        sqlite3_close(sqlite);
+        sqlite = nullptr;
+        throw std::runtime_error("sqlite3_key failed: " + err);
+    }
+    // Probe with a no-op read against sqlite_master. With SQLCipher, a wrong
+    // key only surfaces here as SQLITE_NOTADB — opening + keying alone won't
+    // fail. Fail-fast so a wrong key never silently appears to "work".
+    if (sqlite3_exec(sqlite, "SELECT count(*) FROM sqlite_master;", nullptr, nullptr, nullptr) != SQLITE_OK) {
+        std::string err = sqlite3_errmsg(sqlite);
+        sqlite3_close(sqlite);
+        sqlite = nullptr;
+        throw std::runtime_error("Failed to open encrypted database (wrong passphrase?): " + err);
+    }
+    consoleLog("Opened encrypted database at " + resolvedPath);
+#else
+    // Build without SQLCipher — passphrase is accepted but ignored.
+    (void)passphrase;
     consoleLog("Opened database at " + resolvedPath);
+#endif
 }
 
 void SqliteDb::destroy() {

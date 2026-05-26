@@ -14,6 +14,12 @@ android {
 
     namespace "com.nozbe.watermelondb.jsi"
 
+    // Required so CMake can locate the OpenSSL NDK prefab port that SQLCipher
+    // links against. Without this, find_package(openssl REQUIRED CONFIG) fails.
+    buildFeatures {
+        prefab true
+    }
+
     defaultConfig {
         minSdkVersion rootProject.hasProperty('minSdkVersion') ? rootProject.minSdkVersion : DEFAULT_MIN_SDK_VERSION
         targetSdkVersion rootProject.hasProperty('targetSdkVersion') ? rootProject.targetSdkVersion : DEFAULT_TARGET_SDK_VERSION
@@ -21,6 +27,11 @@ android {
         versionName "1.0"
         externalNativeBuild {
             cmake {
+                // SQLCipher compile-time flags. These match the iOS podspec's
+                // GCC_PREPROCESSOR_DEFINITIONS so the C++ shared layer behaves
+                // identically across platforms.
+                cFlags '-DSQLITE_HAS_CODEC', '-DSQLITE_TEMP_STORE=2'
+                cppFlags '-DSQLITE_HAS_CODEC', '-DSQLITE_TEMP_STORE=2'
                 // Not sure if this is necessary. I added this in attempt to fix catching
                 // C++ errors across .so bounds, but it still doesn't work, so can probably get rid
                 // of this
@@ -45,12 +56,18 @@ android {
     }
 
     packagingOptions {
-        // TODO: This only seems necessary if c++_shared is enabled in cmake
-        // pickFirst '**/libc++_shared.so'
+        // SQLCipher links OpenSSL which ships libc++_shared.so; without this,
+        // the host app build fails with duplicate .so errors when two libraries
+        // both bring their own copy.
+        pickFirst '**/libc++_shared.so'
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.facebook.react:react-native:+'
+
+    // OpenSSL NDK prefab port — supplies libcrypto/libssl that SQLCipher
+    // requires for its codec. The host app needs minSdkVersion >= 21.
+    implementation 'com.android.ndk.thirdparty:openssl:1.1.1q-beta-1'
 }

@@ -5,6 +5,8 @@ import commonTests from '../__tests__/commonTests'
 import { invariant } from '../../utils/common'
 import DatabaseAdapterCompat from '../compat'
 
+const TEST_PASSPHRASE = 'watermelon-integration-test-passphrase'
+
 const SQLiteAdapterTest = (spec) => {
   const configurations = [
     Platform.OS !== 'windows'
@@ -20,7 +22,11 @@ const SQLiteAdapterTest = (spec) => {
   configurations.forEach(({ name: configurationName, options, expectedDispatcherType }) => {
     spec.describe(configurationName, () => {
       spec.it('configures adapter correctly', () => {
-        const adapter = new SQLiteAdapter({ schema: testSchema, ...options })
+        const adapter = new SQLiteAdapter({
+          schema: testSchema,
+          passphrase: TEST_PASSPHRASE,
+          ...options,
+        })
         expect(adapter._dispatcherType).toBe(expectedDispatcherType)
       })
 
@@ -32,7 +38,12 @@ const SQLiteAdapterTest = (spec) => {
         const [name, test] = testCase
         spec.it(name, async () => {
           const dbName = `file:testdb${Math.random()}?mode=memory&cache=shared`
-          const adapter = new SQLiteAdapter({ schema: testSchema, dbName, ...options })
+          const adapter = new SQLiteAdapter({
+            schema: testSchema,
+            dbName,
+            passphrase: TEST_PASSPHRASE,
+            ...options,
+          })
           invariant(
             adapter._dispatcherType === expectedDispatcherType,
             `Expected adapter to be ${expectedDispatcherType}`,
@@ -40,7 +51,7 @@ const SQLiteAdapterTest = (spec) => {
           await test(
             new DatabaseAdapterCompat(adapter),
             SQLiteAdapter,
-            { dbName, ...options },
+            { dbName, passphrase: TEST_PASSPHRASE, ...options },
             Platform.OS,
           )
         })

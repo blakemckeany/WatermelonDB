@@ -26,7 +26,7 @@ namespace watermelondb {
 class Database : public jsi::HostObject {
 public:
     static void install(jsi::Runtime *runtime);
-    Database(jsi::Runtime *runtime, std::string path, bool usesExclusiveLocking);
+    Database(jsi::Runtime *runtime, std::string path, std::string passphrase, bool usesExclusiveLocking);
     ~Database();
     void destroy();
 

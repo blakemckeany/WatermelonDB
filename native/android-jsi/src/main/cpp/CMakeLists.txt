@@ -33,11 +33,16 @@ endif()
 # Header search paths
 # FIXME: <simdjson/simdjson.h> should work…
 
-set(SQLITE_VERSION sqlite-amalgamation-3460000)
+# Vendored SQLCipher amalgamation. Encryption-at-rest is mandatory in this
+# fork — the upstream @nozbe/sqlite amalgamation has been replaced with a
+# SQLCipher build so #include <sqlite3.h> resolves to the codec-enabled
+# header. Built from the SQLCipher Community Edition source; see
+# native/sqlite-cipher-amalgamation/NOTICE for licensing.
+set(SQLCIPHER_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../../sqlite-cipher-amalgamation)
 
 include_directories(
         ../../../../shared
-        ${NODE_MODULES_PATH_WM}/@nozbe/sqlite/${SQLITE_VERSION}/
+        ${SQLCIPHER_PATH}
         ${NODE_MODULES_PATH_WM}/@nozbe/simdjson/src/
         ${NODE_MODULES_PATH_RN}/react-native/React
         ${NODE_MODULES_PATH_RN}/react-native/React/Base
@@ -59,12 +64,14 @@ include_directories(
 #        -DFOLLY_HAVE_MEMRCHR=1
 #)
 
+# SQLCipher codec must be enabled at compile time. Mirrored in build.gradle's
+# cFlags/cppFlags so target_compile_definitions doesn't need to repeat them
+# for the vendored sqlite3.c.
+add_definitions(-DSQLITE_HAS_CODEC -DSQLITE_TEMP_STORE=2)
+
 # simdjson is slow without optimization
 set(CMAKE_CXX_FLAGS_DEBUG "-Os") # comment out for JSI debugging
 set(CMAKE_CXX_FLAGS_RELEASE "-Os")
-
-# TODO: Configure sqlite with compile-time options
-# https://www.sqlite.org/compile.html
 
 # -------------------------------------------------
 # Source files
@@ -73,8 +80,8 @@ file(GLOB ANDROID_JSI_SRC_FILES ./*.cpp)
 file(GLOB SHARED_SRC_FILES ../../../../shared/*.cpp)
 
 add_library(watermelondb-jsi SHARED
-        # vendor files
-        ${NODE_MODULES_PATH_WM}/@nozbe/sqlite/${SQLITE_VERSION}/sqlite3.c
+        # vendor files — SQLCipher amalgamation replaces sqlite-amalgamation
+        ${SQLCIPHER_PATH}/sqlite3.c
         ${NODE_MODULES_PATH_WM}/@nozbe/simdjson/src/simdjson.cpp
         # our sources
         ${ANDROID_JSI_SRC_FILES}
@@ -86,7 +93,13 @@ add_library(watermelondb-jsi SHARED
 # Enable Android 16kb native library alignment
 target_link_options(watermelondb-jsi PRIVATE "-Wl,-z,max-page-size=16384")
 
+# OpenSSL via prefab — supplied by the `com.android.ndk.thirdparty:openssl`
+# dependency declared in build.gradle. SQLCipher's codec needs libcrypto.
+find_package(openssl REQUIRED CONFIG)
+
 target_link_libraries(watermelondb-jsi
                       # link with these libraries:
                       android
-                      log)
+                      log
+                      openssl::crypto
+                      openssl::ssl)

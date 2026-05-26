@@ -62,6 +62,8 @@ export default class SQLiteAdapter implements DatabaseAdapter {
 
   _dispatcher: SqliteDispatcher
 
+  _passphrase: string
+
   _initPromise: Promise<void>
 
   constructor(options: SQLiteAdapterOptions): void {
@@ -69,19 +71,26 @@ export default class SQLiteAdapter implements DatabaseAdapter {
     const {
       dbName,
       schema,
+      passphrase,
       migrations,
       migrationEvents,
       usesExclusiveLocking = false,
       experimentalUnsafeNativeReuse = false,
     } = options
+    invariant(
+      typeof passphrase === 'string' && passphrase.length > 0,
+      'SQLiteAdapter requires a non-empty `passphrase: string` option. Encryption-at-rest is mandatory in this build of WatermelonDB. See https://watermelondb.dev/docs/Installation#encryption-at-rest for guidance on supplying a key via Keychain / Android Keystore / Expo SecureStore.',
+    )
     this.schema = schema
     this.migrations = migrations
     this._migrationEvents = migrationEvents
+    this._passphrase = passphrase
     this.dbName = this._getName(dbName)
     this._dispatcherType = getDispatcherType(options)
     // Hacky-ish way to create an object with NativeModule-like shape, but that can dispatch method
     // calls to async, synch NativeModule, or JSI implementation w/ type safety in rest of the impl
     this._dispatcher = makeDispatcher(this._dispatcherType, this._tag, this.dbName, {
+      passphrase,
       usesExclusiveLocking,
       experimentalUnsafeNativeReuse,
     })
@@ -108,6 +117,7 @@ export default class SQLiteAdapter implements DatabaseAdapter {
     const clone = new SQLiteAdapter({
       dbName: this.dbName,
       schema: this.schema,
+      passphrase: this._passphrase,
       jsi: this._dispatcherType === 'jsi',
       ...(this.migrations ? { migrations: this.migrations } : {}),
       ...options,

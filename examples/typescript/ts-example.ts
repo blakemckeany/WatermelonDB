@@ -60,6 +60,9 @@ setGenerator(() => 'RANDOM STRING')
 
 const adapter = new SQLiteAdapter({
   schema: AppSchema,
+  // Encryption-at-rest is mandatory. Fetch this from Keychain / Android
+  // Keystore / Expo SecureStore in a real app — never hard-code a passphrase.
+  passphrase: "REPLACE-ME-WITH-KEY-FROM-SECURE-STORAGE",
   migrations: schemaMigrations({
     migrations: [
       {

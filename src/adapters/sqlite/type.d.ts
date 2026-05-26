@@ -16,6 +16,13 @@ export type MigrationEvents = {
 export type SQLiteAdapterOptions = $Exact<{
   dbName?: string
   schema: AppSchema
+  // Required. The passphrase used to encrypt the database at rest via SQLCipher.
+  // Encryption-at-rest is mandatory in this build; pass an empty string and the
+  // constructor will throw. Encryption is only applied when the JSI path is
+  // active — the legacy NativeModules bridge will log a warning and open the
+  // database unencrypted. Use Keychain / Android Keystore / Expo SecureStore to
+  // supply this value; never hard-code a release passphrase in your bundle.
+  passphrase: string
   migrations?: SchemaMigrations
   // The new way to run the database in synchronous mode.
   jsi?: boolean

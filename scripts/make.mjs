@@ -127,6 +127,10 @@ const copyNonJavaScriptFiles = (buildPath) => {
     'native/android',
     'native/android-jsi',
     'native/windows',
+    // The SQLCipher amalgamation (sqlite3.c / sqlite3.h) is the actual encrypted
+    // SQLite engine. Without it the android-jsi and ios builds cannot resolve
+    // their CMakeLists.txt sources and refuse to configure.
+    'native/sqlite-cipher-amalgamation',
   ])
   cleanFolder(`${buildPath}/native/ios/WatermelonDB.xcodeproj/xcuserdata`)
   cleanFolder(`${buildPath}/native/android/build`)

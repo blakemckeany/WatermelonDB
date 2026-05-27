@@ -32,19 +32,16 @@ android {
                 // identically across platforms.
                 cFlags '-DSQLITE_HAS_CODEC', '-DSQLITE_TEMP_STORE=2'
                 cppFlags '-DSQLITE_HAS_CODEC', '-DSQLITE_TEMP_STORE=2'
-                // Not sure if this is necessary. I added this in attempt to fix catching
-                // C++ errors across .so bounds, but it still doesn't work, so can probably get rid
-                // of this
-                // NOTE: It appears that doing this causes some ABI compatibility issues (or something):
-                //   libc++_shared.so
-                //   libc++_shared.so (__gxx_personality_v0+416)
-                //   libreactnativejni.so
-                //   libreactnativejni.so (_Unwind_RaiseException+263)
-                //   libfbjni.so (__cxa_throw+108)
-                //   libc++_shared.so (std::__ndk1::locale::use_facet(std::__ndk1::locale::id&) const+212)
-                //   libwatermelondb-jsi.so (std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char>>::operator<<(long long)+124)
-                //   libwatermelondb-jsi.so (std::__ndk1::basic_string<char, watermelondb::to_json_string<simdjson::fallback::ondemand::value&>::char_traits<char>, watermelondb::to_json_string<simdjson::fallback::ondemand::value&>::allocator<char>> watermelondb::to_json_string<simdjson::fallback::ondemand::value&>(simdjson::fallback::ondemand::value&&&)+3486)
-                // arguments "-DANDROID_STL=c++_shared"
+                // Required on modern React Native (>= 0.71 / Hermes tooling
+                // prefab): all RN-supplied native libraries are built against
+                // the shared NDK C++ STL. Linking the JSI library against the
+                // static STL produces:
+                //   "User is using a static STL but library requires a shared
+                //    STL [//ReactAndroid/hermestooling]"
+                // The historical crash referenced in the previous version of
+                // this comment was specific to a much older RN/NDK combo and
+                // no longer reproduces.
+                arguments "-DANDROID_STL=c++_shared"
             }
         }
     }

@@ -1,5 +1,8 @@
 // @flow
 
+// eslint-disable-next-line no-console
+console.log('🍉 FORK LOADED: @nozbe/watermelondb (MyOrchard dev fork) — JS entry')
+
 import * as Q from './QueryDescription'
 
 export { default as Collection } from './Collection'

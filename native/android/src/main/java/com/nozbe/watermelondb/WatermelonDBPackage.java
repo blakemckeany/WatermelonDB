@@ -1,5 +1,6 @@
 package com.nozbe.watermelondb;
 
+import android.util.Log;
 import androidx.annotation.NonNull;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;
@@ -13,6 +14,7 @@ public class WatermelonDBPackage implements ReactPackage {
     @NonNull
     @Override
     public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactAppContext) {
+        Log.i("WatermelonDB", "🍉 FORK LOADED: WatermelonDB (MyOrchard dev fork) — Android package register");
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new WMDatabaseBridge(reactAppContext));
         return modules;

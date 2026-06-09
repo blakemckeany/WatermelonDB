@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.4.1)
 # execute_process (COMMAND ln "-s" "src" "../../../../../node_modules/react-native/third-party/double-conversion-1.1.6/double-conversion")
 
 # NOTE: This may need to be bumped sometimes to force CMake caches to clear
-set(WMELON_JSI_BUMP 4)
+set(WMELON_JSI_BUMP 5)
 
 # -------------------------------------------------
 # Figure out where node_modules is
@@ -93,13 +93,27 @@ add_library(watermelondb-jsi SHARED
 # Enable Android 16kb native library alignment
 target_link_options(watermelondb-jsi PRIVATE "-Wl,-z,max-page-size=16384")
 
-# OpenSSL via prefab — supplied by the `com.android.ndk.thirdparty:openssl`
-# dependency declared in build.gradle. SQLCipher's codec needs libcrypto.
-find_package(openssl REQUIRED CONFIG)
+# OpenSSL: statically link a 16 KB-aligned libcrypto built from source
+# (scripts/vendor-openssl.sh, OpenSSL 3.5.x LTS, NDK r27). The Google prefab
+# com.android.ndk.thirdparty:openssl:1.1.1q is only 4 KB page-aligned and has
+# no 16 KB release, so it cannot satisfy Google Play's 16 KB requirement.
+# Static linking folds libcrypto into libwatermelondb-jsi.so — which is linked
+# with -Wl,-z,max-page-size=16384 above — so no separate (4 KB) .so ships.
+# SQLCipher's codec only needs libcrypto; libssl (TLS) is not required.
+set(OPENSSL_PREBUILT_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../third_party/openssl/${ANDROID_ABI})
+if(NOT EXISTS "${OPENSSL_PREBUILT_DIR}/lib/libcrypto.a")
+        message(FATAL_ERROR
+                "Vendored libcrypto.a not found at ${OPENSSL_PREBUILT_DIR}/lib. "
+                "Run scripts/vendor-openssl.sh (wired into this package's postinstall; "
+                "requires Android NDK r27+). Released tarballs ship it prebuilt.")
+endif()
+add_library(crypto STATIC IMPORTED)
+set_target_properties(crypto PROPERTIES
+        IMPORTED_LOCATION ${OPENSSL_PREBUILT_DIR}/lib/libcrypto.a)
+include_directories(${OPENSSL_PREBUILT_DIR}/include)
 
 target_link_libraries(watermelondb-jsi
                       # link with these libraries:
                       android
                       log
-                      openssl::crypto
-                      openssl::ssl)
+                      crypto)

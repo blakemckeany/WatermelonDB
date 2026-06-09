@@ -1,0 +1,19 @@
+This directory holds static OpenSSL libcrypto archives (one per Android
+ABI) used by the SQLCipher codec in this fork of WatermelonDB. They are
+built from official OpenSSL release tarballs by `scripts/vendor-openssl.sh`,
+which pins a specific version and verifies its SHA-256.
+
+OpenSSL is © The OpenSSL Project Authors. OpenSSL 3.x is licensed under
+the Apache License 2.0, available at:
+  https://github.com/openssl/openssl/blob/master/LICENSE.txt
+
+The built archives are NOT committed to this repository. They are produced
+on demand by `scripts/vendor-openssl.sh` (which runs automatically via the
+`postinstall` npm hook when an Android NDK is available) and are included
+in released dist tarballs. The pinned version is recorded in
+`scripts/vendor-openssl.sh`.
+
+Redistribution: when you publish an application built against this
+directory you inherit the Apache 2.0 notice requirement. Reproduce the
+OpenSSL license in your application's third-party-licenses page or about
+screen.

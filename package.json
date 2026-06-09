@@ -1,7 +1,7 @@
 {
   "name": "@nozbe/watermelondb",
   "description": "Build powerful React Native and React web apps that scale from hundreds to tens of thousands of records and remain fast",
-  "version": "0.28.1-0",
+  "version": "0.28.1-1",
   "engines": {
     "node": ">=18"
   },
@@ -33,7 +33,8 @@
     "docs:build": "./scripts/update-docusaurus && cd docs-website && yarn build",
     "docs:deploy": "./scripts/update-docusaurus && cd docs-website && yarn deploy",
     "vendor:sqlcipher": "bash ./scripts/vendor-sqlcipher.sh",
-    "postinstall": "patch-package && bash ./scripts/vendor-sqlcipher.sh"
+    "vendor:openssl": "bash ./scripts/vendor-openssl.sh",
+    "postinstall": "patch-package && bash ./scripts/vendor-sqlcipher.sh && bash ./scripts/vendor-openssl.sh"
   },
   "types": "src/index.d.ts",
   "author": "@Nozbe",
